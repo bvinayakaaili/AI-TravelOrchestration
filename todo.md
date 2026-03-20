@@ -1,0 +1,174 @@
+# ✅ AI-Orchestrated Smart Travel Planner — Full Project To-Do List
+
+---
+
+## 📦 PHASE 1 — Project Setup (Day 1)
+
+- [ ] Create project folder structure: `ai-platform/`
+- [ ] Initialize Git repository
+- [ ] Create `README.md`, `.gitignore`, `requirements.txt`
+- [ ] Set up Python virtual environment (`venv`)
+- [ ] Install base dependencies: `fastapi`, `uvicorn`, `langchain`, `httpx`, `pydantic`
+- [ ] Install Ollama locally → pull `llama2` or `mistral` model
+- [ ] Create `.env` file for API keys (OpenWeather, etc.)
+- [ ] Create `docker-compose.yml` scaffold
+
+---
+
+## 🔧 PHASE 2 — Microservices (Days 2–3)
+
+### ✈️ Flight Service (`services/flight_service.py`)
+- [ ] Create FastAPI app on port `8001`
+- [ ] Load mock data from `data/flights.json`
+- [ ] Implement `GET /flights?source=&destination=`
+- [ ] Add `/health` endpoint
+- [ ] Write unit test for flight response
+
+### 🏨 Hotel Service (`services/hotel_service.py`)
+- [ ] Create FastAPI app on port `8002`
+- [ ] Load mock data from `data/hotels.json`
+- [ ] Implement `GET /hotels?city=`
+- [ ] Add `/health` endpoint
+- [ ] Write unit test for hotel response
+
+### 🌤️ Weather Service (`services/weather_service.py`)
+- [ ] Create FastAPI app on port `8003`
+- [ ] Integrate OpenWeather API (or mock fallback)
+- [ ] Implement `GET /weather?city=`
+- [ ] Add `/health` endpoint
+- [ ] Write unit test for weather response
+
+### 🗺️ Places Service (`services/places_service.py`)
+- [ ] Create FastAPI app on port `8004`
+- [ ] Load mock places data
+- [ ] Implement `GET /places?city=`
+- [ ] Add `/health` endpoint
+- [ ] Write unit test for places response
+
+### 💰 Budget Service (`services/budget_service.py`)
+- [ ] Create FastAPI app on port `8005`
+- [ ] Implement budget calculation: `flight + hotel × nights + activities`
+- [ ] Implement `POST /budget` with JSON body
+- [ ] Add `/health` endpoint
+- [ ] Write unit test for budget calculation
+
+---
+
+## 🚪 PHASE 3 — API Gateway (Day 4)
+
+- [ ] Create `gateway/main.py` with FastAPI
+- [ ] Implement `POST /plan` endpoint
+- [ ] Add request validation using Pydantic
+- [ ] Forward requests to orchestrator
+- [ ] Return unified response
+- [ ] Add CORS middleware
+- [ ] Add rate limiting with `slowapi` (10 req/min)
+- [ ] Add `/health` endpoint
+
+---
+
+## 🤖 PHASE 4 — AI Orchestration Layer (Days 5–8)
+
+- [ ] Create `orchestrator/planner.py`
+- [ ] Connect to local Ollama LLM (LLaMA 2 / Mistral)
+- [ ] Build LangChain agent with tool definitions
+- [ ] Implement intent detection prompt
+- [ ] Implement dynamic service selection logic
+- [ ] Build parallel async service calls using `asyncio.gather()`
+- [ ] Aggregate all service results into unified plan
+- [ ] Format final travel plan output
+- [ ] Add Explainable AI output (which services were called & why)
+- [ ] Test orchestrator with sample query: *"Plan a 2-day trip to Goa under ₹15000"*
+
+---
+
+## 🔗 PHASE 5 — Service Integration (Day 9)
+
+- [ ] Connect gateway → orchestrator → all microservices
+- [ ] Test end-to-end flow with Postman/curl
+- [ ] Handle service failure gracefully (circuit breaker / fallback)
+- [ ] Implement retry logic for failed service calls
+- [ ] Validate budget filter works correctly
+- [ ] Confirm async parallel execution is working
+
+---
+
+## 🌐 PHASE 6 — Frontend Chat UI (Day 10)
+
+- [ ] Create `frontend/index.html`
+- [ ] Build chat interface with Tailwind CSS
+- [ ] Implement `frontend/script.js` to call `POST /plan`
+- [ ] Show loading spinner while waiting for response
+- [ ] Display travel plan results in card layout
+- [ ] Show AI workflow explanation panel
+- [ ] Make UI mobile responsive
+- [ ] Test frontend ↔ gateway connection
+
+---
+
+## 🧪 PHASE 7 — Testing (Day 11)
+
+- [ ] Write unit tests for all 5 microservices
+- [ ] Write integration test for gateway → orchestrator
+- [ ] Write end-to-end test: full trip plan query
+- [ ] Test edge cases (budget too low, unknown city, missing params)
+- [ ] Run all tests with `pytest`
+
+---
+
+## 📊 PHASE 8 — Logging & Monitoring (Day 12)
+
+- [ ] Add structured JSON logging to all services
+- [ ] Add Prometheus metrics (`requests_total`, `request_duration`)
+- [ ] Add workflow trace logs in orchestrator
+- [ ] Implement `/logs` endpoint per service
+- [ ] Set up log levels via `LOG_LEVEL` env variable
+
+---
+
+## ⚡ PHASE 9 — Optimization (Day 13)
+
+- [ ] Implement Redis caching for popular destinations
+- [ ] Confirm parallel execution with `asyncio.gather()`
+- [ ] Profile response time (target: 2–4 seconds)
+- [ ] Optimize LLM prompt for faster intent detection
+- [ ] Implement pagination for large result sets
+
+---
+
+## 🎬 PHASE 10 — Demo Preparation (Day 14)
+
+- [ ] Run full demo: *"Plan a 2-day trip to Goa under ₹15000 with beach activities"*
+- [ ] Record demo video / screenshots
+- [ ] Prepare demo script
+- [ ] Make sure all services start cleanly with one command
+- [ ] Add `start.sh` script to launch all services
+
+---
+
+## 📝 PHASE 11 — Documentation (Day 15)
+
+- [ ] Finalize `README.md` with setup instructions
+- [ ] Add API documentation (auto-generated by FastAPI at `/docs`)
+- [ ] Document all environment variables
+- [ ] Add architecture diagram
+- [ ] Write contributing guidelines
+- [ ] Tag `v1.0.0` release on GitHub
+
+---
+
+## 🚀 OPTIONAL / Future Enhancements
+
+- [ ] Add JWT authentication
+- [ ] Docker Compose for all services
+- [ ] Kubernetes deployment config
+- [ ] Multi-destination trip planning
+- [ ] Voice input interface
+- [ ] Mobile app (React Native)
+- [ ] Real flight/hotel booking API integration
+- [ ] Multi-language support (i18n)
+- [ ] Social sharing of trip plans
+
+---
+
+**Total: 15 Days | 80+ Tasks**

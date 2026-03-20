@@ -1,0 +1,94 @@
+version: '3.8'
+
+services:
+  gateway:
+    build:
+      context: .
+      dockerfile: gateway/Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - FLIGHTS_SERVICE_URL=http://flights-service:8001
+      - HOTELS_SERVICE_URL=http://hotels-service:8002
+      - WEATHER_SERVICE_URL=http://weather-service:8003
+      - PLACES_SERVICE_URL=http://places-service:8004
+      - BUDGET_SERVICE_URL=http://budget-service:8005
+      - USER_SERVICE_URL=http://user-service:8006
+      - LLM_PROVIDER=local
+      - LLM_MODEL=llama2
+      - OLLAMA_BASE_URL=http://host.docker.internal:11434
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY:-change-in-production}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      - flights-service
+      - hotels-service
+      - weather-service
+      - places-service
+      - budget-service
+      - user-service
+    volumes:
+      - ./data:/app/data   # ChromaDB + knowledge base
+
+  flights-service:
+    build:
+      context: .
+      dockerfile: services/flight_service/Dockerfile
+    ports:
+      - "8001:8001"
+
+  hotels-service:
+    build:
+      context: .
+      dockerfile: services/hotel_service/Dockerfile
+    ports:
+      - "8002:8002"
+
+  weather-service:
+    build:
+      context: .
+      dockerfile: services/weather_service/Dockerfile
+    ports:
+      - "8003:8003"
+    environment:
+      - OPENWEATHER_API_KEY=${OPENWEATHER_API_KEY}
+
+  places-service:
+    build:
+      context: .
+      dockerfile: services/places_service/Dockerfile
+    ports:
+      - "8004:8004"
+
+  budget-service:
+    build:
+      context: .
+      dockerfile: services/budget_service/Dockerfile
+    ports:
+      - "8005:8005"
+
+  user-service:
+    build:
+      context: .
+      dockerfile: services/user_service/Dockerfile
+    ports:
+      - "8006:8006"
+    environment:
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY:-change-in-production}
+      - USER_DB_PATH=/data/users.db
+    volumes:
+      - user-data:/data
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    depends_on:
+      - gateway
+    environment:
+      - NEXT_PUBLIC_GATEWAY_URL=http://localhost:8000
+
+volumes:
+  user-data:
