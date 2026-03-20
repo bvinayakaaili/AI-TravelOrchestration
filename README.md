@@ -8,9 +8,11 @@
 - **AI Architecture — Memory**: Added **Conversation Memory** (per-session history) so the planner understands follow-up questions.
 - **Microservices — User & Auth**: New **User Service** (Port 8006) for JWT authentication, user profiles, and saving/sharing travel plans.
 - **Frontend — Advanced Features**: Real-time **WebSockets** for streaming plan generation and **Redis caching** for extreme performance.
-- **Location context**: Auto geolocation fallback with explicit user overrides (e.g., “from Hyderabad” even if detected in Bengaluru), plus “to X / in X” destination extraction when LLM intent parsing fails.
+- **Location context**: Auto geolocation fallback with explicit user overrides (e.g., "from Hyderabad" even if detected in Bengaluru), plus "to X / in X" destination extraction when LLM intent parsing fails.
 - **Orchestration**: Added **Smart Budget Advisor** and **Trip Comparison** capabilities.
 - **Budget tips UI**: Budget tips panel now remains visible with a helpful fallback message when LLM advice generation is unavailable.
+- **Telegram Bot — Enhanced**: Full conversation flow with guided `/plan` wizard, inline keyboard buttons (Plan / Weather / Compare / History), session-based trip history, Markdown-formatted output, and `/weather`, `/compare`, `/history`, `/menu`, `/help` commands.
+- **Mobile App — React Native**: New Expo-based Android/iOS app with 5 screens (Home, Plan Trip, Result, Weather, History) hitting the same backend gateway — zero backend changes required.
 - **Dependencies**: Regenerated `requirements.txt` via `pip freeze` and updated setup guides.
 
 ---
@@ -31,36 +33,38 @@ The system then:
 4. Aggregates results.
 5. Returns a unified travel plan.
 
-This demonstrates **dynamic AI service orchestration**.
+This demonstrates **dynamic AI service orchestration** across **three client surfaces**: Browser, Telegram Bot, and Mobile App — all powered by the same headless backend.
 
 ---
 
 # 2. System Architecture
 
 ```
-    Frontend (Chat UI)
-            │
-            ▼
-    FastAPI Gateway <───> Redis Cache
-            │
-            ▼
-    AI Orchestrator (LLM + LangChain) <───> ChromaDB (RAG)
-            │
-     ┌──────┴───────┬────────┬────────┬────────┬────────┐
-     ▼              ▼        ▼        ▼        ▼        ▼
-Flights Service  Hotels   Weather  Places   Budget   User & Auth
-                Service  Service  Service  Service   Service
-     │              │        │        │        │        │
-     └──────────────┴────────┴────┬───┴────────┴────────┘
-                                  ▼
-                      Final Travel Plan Response
+    Browser Frontend        Telegram Bot        React Native App
+    (Next.js 14)            (bot_enhanced.py)   (App.js / Expo)
+            │                       │                   │
+            └───────────────────────┼───────────────────┘
+                                    ▼
+                        FastAPI Gateway <───> Redis Cache
+                                    │
+                                    ▼
+                    AI Orchestrator (LLM + LangChain) <───> ChromaDB (RAG)
+                                    │
+             ┌──────────────────────┼────────┬────────┬────────┬────────┐
+             ▼              ▼        ▼        ▼        ▼        ▼        ▼
+        Flights Service  Hotels   Weather  Places   Budget   User & Auth
+                        Service  Service  Service  Service   Service
+             │              │        │        │        │        │
+             └──────────────┴────────┴────────┴────────┴────────┘
+                                    ▼
+                        Final Travel Plan Response
 ```
 
 ---
 
 # 3. Technology Stack
 
-## Frontend
+## Browser Frontend
 
 Modern slide-based UI with AI Travel Planner chatbot.
 
@@ -78,6 +82,115 @@ Features:
 - Fully responsive design — mobile hamburger menu + vertical scroll, desktop keyboard/wheel navigation
 - Custom cursor (hidden on touch devices), glassmorphism cards, and spotlight hover effects
 - **User Dashboard**: login/register and history view (integrated with User Service)
+
+---
+
+## Telegram Bot
+
+Headless client surface for the travel planner, accessible via any Telegram-connected device.
+
+File: `bot_enhanced.py`
+
+Technologies:
+
+- **python-telegram-bot** v20+
+- **httpx** (async HTTP)
+- **PyYAML** (config)
+
+### Commands
+
+| Command | Description |
+|---|---|
+| `/start` | Welcome message + main menu |
+| `/plan` | Guided step-by-step trip planner wizard |
+| `/weather <city>` | Instant weather for any city |
+| `/compare` | Compare two destinations |
+| `/history` | View trips planned this session |
+| `/menu` | Show main menu inline keyboard |
+| `/help` | Full help text |
+| `/cancel` | Cancel an in-progress wizard |
+
+### Features
+
+- **Guided `/plan` wizard** — ConversationHandler walks the user through source → destination → duration → budget one step at a time
+- **Inline keyboards** — main menu with emoji action buttons; trip result shows ✅ Confirm / 🔄 Retry / 🏠 Menu
+- **Session history** — trips are tracked per chat via `context.user_data`
+- **Natural language fallback** — any free-text message is routed to the gateway, same as before
+- **Markdown formatting** — bold route headers, bullet itineraries, clean budget/weather display
+- **4096-char safety** — long responses are automatically truncated to Telegram's limit
+
+### Configuration
+
+`config.yml`:
+
+```yaml
+telegram_token: "YOUR_BOT_TOKEN"
+gateway_url: "http://localhost:8000"
+```
+
+### Running the Bot
+
+```bash
+pip install python-telegram-bot httpx pyyaml
+python bot_enhanced.py
+```
+
+---
+
+## React Native Mobile App
+
+Full Android/iOS app hitting the same backend gateway — no backend changes needed.
+
+File: `mobileApp/TravelPlanner/App.js`
+
+Technologies:
+
+- **React Native** (Expo managed workflow)
+- **React Navigation** (native stack)
+- **Fetch API** (REST calls to gateway)
+
+### Screens
+
+| Screen | Route | Description |
+|---|---|---|
+| Home | `Home` | Dashboard with action cards and quick tips |
+| Plan Trip | `PlanTrip` | Form with source, destination, duration, budget + quick-select chips |
+| Result | `Result` | Full itinerary with weather, budget tips, day-by-day plan, save/retry |
+| Weather | `Weather` | City weather lookup with popular city chips |
+| History | `History` | Session trip history (AsyncStorage-ready) |
+
+### Setup
+
+```bash
+npx create-expo-app TravelPlanner --template blank
+cd TravelPlanner
+npm install @react-navigation/native @react-navigation/native-stack
+npx expo install react-native-screens react-native-safe-area-context
+# Replace App.js with the provided file
+# Update GATEWAY_URL at the top of App.js
+```
+
+### Running
+
+```bash
+# Web browser preview
+npm run web
+
+# Android/iOS via Expo Go
+npx expo start
+# Scan QR code with Expo Go app
+# Press t in terminal to switch to tunnel mode if QR scan doesn't connect
+```
+
+### Configuration
+
+Update `GATEWAY_URL` at line 27 of `App.js`:
+
+```javascript
+const GATEWAY_URL = 'http://YOUR_BACKEND_IP:8000';
+```
+
+> **Note**: On a physical device, use your machine's local network IP (e.g. `192.168.0.100`), not `localhost`. Use tunnel mode (`t` in Expo terminal) if the device and PC are on different subnets or behind a firewall.
 
 ---
 
@@ -122,28 +235,22 @@ Responsibilities:
 
 ## Microservices
 
-Each capability runs as an independent API.
+Each capability runs as an independent API implemented using **FastAPI**.
 
-Each service will be implemented using **FastAPI**.
-
-Minimal services:
-
-| Service         | Endpoint   | Purpose                    | Port |
-| --------------- | ---------- | -------------------------- | ---- |
-| Flight Service  | `/flights` | Return flight options      | 8001 |
-| Hotel Service   | `/hotels`  | Return hotel options       | 8002 |
-| Weather Service | `/weather` | Get weather information    | 8003 |
-| Places Service  | `/places`  | Return tourist attractions | 8004 |
-| Budget Service  | `/budget`  | Estimate trip budget       | 8005 |
-| User Service    | `/auth`    | JWT Auth & Saved Plans     | 8006 |
+| Service | Endpoint | Purpose | Port |
+|---|---|---|---|
+| Flight Service | `/flights` | Return flight options | 8001 |
+| Hotel Service | `/hotels` | Return hotel options | 8002 |
+| Weather Service | `/weather` | Get weather information | 8003 |
+| Places Service | `/places` | Return tourist attractions | 8004 |
+| Budget Service | `/budget` | Estimate trip budget | 8005 |
+| User Service | `/auth` | JWT Auth & Saved Plans | 8006 |
 
 ---
 
 # 4. Microservice APIs
 
 ## Flight Service
-
-Example endpoint:
 
 ```
 GET /flights?source=hyd&destination=goa
@@ -168,7 +275,7 @@ Response:
 GET /hotels?city=goa
 ```
 
-Example response:
+Response:
 
 ```json
 {
@@ -183,17 +290,13 @@ Example response:
 
 ## Weather Service
 
-Uses real API:
-
-- **OpenWeather API**
-
-Endpoint:
+Uses real API — **OpenWeather API**
 
 ```
 GET /weather?city=goa
 ```
 
-Example response:
+Response:
 
 ```json
 {
@@ -210,7 +313,7 @@ Example response:
 GET /places?city=goa
 ```
 
-Example response:
+Response:
 
 ```json
 {
@@ -224,8 +327,6 @@ Example response:
 
 Calculates estimated trip cost.
 
-Example logic:
-
 ```
 budget = flight_cost + hotel_cost + activities
 ```
@@ -233,8 +334,6 @@ budget = flight_cost + hotel_cost + activities
 ---
 
 # 5. AI Orchestration Logic
-
-Workflow process:
 
 ```
 User Query
@@ -336,8 +435,17 @@ frontend/                    # Next.js 14 + Tailwind CSS
    tailwind.config.ts
    package.json
 
+telegram/
+   bot_enhanced.py           # Enhanced Telegram bot (guided wizard, inline buttons, commands)
+   config.yml                # telegram_token + gateway_url
+
+mobileApp/
+   TravelPlanner/
+     App.js                  # React Native app (Expo) — 5 screens, dark theme
+     package.json
+
 gateway/
-   main.py                   # FastAPI gateway (POST /plan, GET /health)
+   main.py                   # FastAPI gateway (POST /plans/generate, GET /health, WS /ws/plan)
    Dockerfile
 
 orchestrator/
@@ -368,20 +476,20 @@ docker-compose.yml
 
 # 9. 15-Day Execution Plan
 
-| Day | Task                            |
-| --- | ------------------------------- |
-| 1   | Project design                  |
-| 2–3 | Build microservices             |
-| 4   | Implement FastAPI gateway       |
-| 5–6 | Integrate LangChain             |
-| 7–8 | Implement orchestration logic   |
-| 9   | Connect services                |
-| 10  | Build frontend chat UI          |
-| 11  | Testing                         |
-| 12  | Add logs + workflow explanation |
-| 13  | Optimize orchestration          |
-| 14  | Prepare demo                    |
-| 15  | Documentation                   |
+| Day | Task |
+|---|---|
+| 1 | Project design |
+| 2–3 | Build microservices |
+| 4 | Implement FastAPI gateway |
+| 5–6 | Integrate LangChain |
+| 7–8 | Implement orchestration logic |
+| 9 | Connect services |
+| 10 | Build browser frontend chat UI |
+| 11 | Build & test Telegram Bot (enhanced) |
+| 12 | Build React Native mobile app |
+| 13 | Cross-client testing (browser + bot + mobile) |
+| 14 | Prepare demo |
+| 15 | Documentation |
 
 ---
 
@@ -415,7 +523,7 @@ These services are required to generate a complete travel plan.
 The prototype demonstrates:
 
 - AI-driven workflow orchestration
-- Headless architecture
+- Headless architecture with **three independent client surfaces** (Browser, Telegram, Mobile)
 - Composable microservices
 - Intelligent service selection
 
@@ -434,15 +542,16 @@ This architecture closely resembles **modern AI agent systems** used in industry
 ### Software Requirements
 
 - **Python**: 3.8+
-- **Node.js**: 14+ (for frontend development)
+- **Node.js**: 14+ (for frontend and mobile development)
 - **Docker**: 20.10+ (optional, for containerization)
 - **pip**: Latest version for package management
 - **git**: For version control
 
 ### API Keys & External Services
 
-- **Local LLM Setup**: LLaMA 2, Mistral, or Ollama (recommended - no API key needed)
+- **Local LLM Setup**: LLaMA 2, Mistral, or Ollama (recommended — no API key needed)
 - **OpenWeather API Key** (optional, for real weather data)
+- **Telegram Bot Token**: Create via [@BotFather](https://t.me/botfather) on Telegram
 - **Note**: All services can run locally without any cloud API keys
 
 ---
@@ -470,9 +579,7 @@ cd backend
 pip install -r requirements.txt
 ```
 
-### Required Python Packages
-
-All dependencies have been frozen to ensure reproducible builds. Simply run the `pip install -r requirements.txt` command mentioned above. Key dependencies include `FastAPI`, `LangChain`, `Uvicorn`, and `Ollama`.
+Required packages include `FastAPI`, `LangChain`, `Uvicorn`, `Ollama`, `python-telegram-bot`, and `httpx`.
 
 **Optional packages for cloud LLM support:**
 
@@ -481,14 +588,22 @@ openai==1.3.0
 anthropic==0.7.0
 ```
 
-### Step 4: Install Frontend Dependencies (Optional)
+### Step 4: Install Browser Frontend Dependencies
 
 ```bash
 cd ../frontend
 npm install
 ```
 
-### Step 5: Configure Environment Variables
+### Step 5: Install Mobile App Dependencies
+
+```bash
+cd ../mobileApp/TravelPlanner
+npm install @react-navigation/native @react-navigation/native-stack
+npx expo install react-native-screens react-native-safe-area-context
+```
+
+### Step 6: Configure Environment Variables
 
 Create a `.env` file in the backend directory:
 
@@ -520,15 +635,18 @@ REDIS_URL=redis://localhost:6379
 LOG_LEVEL=INFO
 ```
 
+Create `telegram/config.yml`:
+
+```yaml
+telegram_token: "YOUR_BOT_TOKEN_FROM_BOTFATHER"
+gateway_url: "http://localhost:8000"
+```
+
 ---
 
 # 14. Local LLM Setup (Recommended)
 
 ### Using Ollama (Easiest Option)
-
-Ollama provides an easy way to run local LLMs without any cloud dependencies.
-
-#### Installation
 
 Download from [ollama.ai](https://ollama.ai):
 
@@ -536,167 +654,115 @@ Download from [ollama.ai](https://ollama.ai):
 - **Linux**: Run `curl https://ollama.ai/install.sh | sh`
 - **Windows**: Download executable and install
 
-#### Pull a Model
-
 ```bash
 # Pull LLaMA 2 (7B - recommended for most systems)
 ollama pull llama2
 
-# Alternative smaller model (3B)
+# Alternative smaller model (faster)
 ollama pull mistral
 
-# Alternative larger model (13B - requires 16GB+ RAM)
-ollama pull llama2:13b
-```
-
-#### Run Ollama Server
-
-```bash
+# Run Ollama server
 ollama serve
-# Runs on http://localhost:11434
-```
-
-#### Test the Local LLM
-
-```bash
-curl http://localhost:11434/api/generate -d '{
-  "model": "llama2",
-  "prompt": "What is Goa known for?"
-}'
-```
-
-### Using LangChain with Local LLM
-
-```python
-from langchain.llms import Ollama
-
-llm = Ollama(
-    model="llama2",
-    base_url="http://localhost:11434"
-)
-
-response = llm("Plan a trip to Goa")
-print(response)
 ```
 
 ### Alternative Local LLM Options
 
-| LLM           | Setup  | Memory | Speed     |
-| ------------- | ------ | ------ | --------- |
-| LLaMA 2 (7B)  | Ollama | 8GB    | Fast      |
-| Mistral 7B    | Ollama | 8GB    | Very Fast |
-| LLaMA 2 (13B) | Ollama | 16GB   | Slower    |
-| Phi-2         | Ollama | 4GB    | Very Fast |
-| LLaMA CPP     | Direct | 4GB+   | Variable  |
-| GPT4All       | Local  | 4GB    | Fast      |
-
-### System Requirements for Local LLMs
-
-| Model | RAM  | VRAM | Disk  |
-| ----- | ---- | ---- | ----- |
-| 7B    | 8GB  | 4GB  | 15GB  |
-| 13B   | 16GB | 8GB  | 30GB  |
-| 70B   | 64GB | 40GB | 150GB |
+| LLM | Setup | Memory | Speed |
+|---|---|---|---|
+| LLaMA 2 (7B) | Ollama | 8GB | Fast |
+| Mistral 7B | Ollama | 8GB | Very Fast |
+| LLaMA 2 (13B) | Ollama | 16GB | Slower |
+| Phi-2 | Ollama | 4GB | Very Fast |
 
 ---
 
 # 15. Running the Application
 
-### Quick Start (All Services)
-
-The easiest way to start all backend services at once:
+### Quick Start (All Backend Services)
 
 ```bash
 # From the project root directory
 python start_backend.py
-# This starts all 6 microservices + gateway on ports 8000-8006
+# Starts all 6 microservices + gateway on ports 8000–8006
 ```
 
 ### Start Individual Microservices (Alternative)
 
-Open separate terminals for each service:
-
 ```bash
-# Terminal 1: Flight Service
-cd services/flight_service
-uvicorn main:app --port 8001
+# Terminal 1–6: each microservice
+uvicorn main:app --port 8001   # flights
+uvicorn main:app --port 8002   # hotels
+uvicorn main:app --port 8003   # weather
+uvicorn main:app --port 8004   # places
+uvicorn main:app --port 8005   # budget
+uvicorn main:app --port 8006   # user/auth
 
-# Terminal 2: Hotel Service
-cd services/hotel_service
-uvicorn main:app --port 8002
-
-# Terminal 3: Weather Service
-cd services/weather_service
-uvicorn main:app --port 8003
-
-# Terminal 4: Places Service
-cd services/places_service
-uvicorn main:app --port 8004
-
-# Terminal 5: Budget Service
-cd services/budget_service
-uvicorn main:app --port 8005
-
-# Terminal 6: User Service
-cd services/user_service
-uvicorn main:app --port 8006
-
-# Terminal 7: API Gateway
-cd gateway
-uvicorn main:app --port 8000
+# Terminal 7: gateway
+cd gateway && uvicorn main:app --port 8000
 ```
 
-### Start Frontend
+### Start Browser Frontend
 
 ```bash
 cd frontend
-npm install
 npm run dev
-# Runs on http://localhost:3000
+# http://localhost:3000 → navigate to Slide 6 (AI Planner)
 ```
 
-### Using the AI Chatbot
+### Start Telegram Bot
 
-1. Make sure Ollama is running: `ollama serve`
-2. Start the backend: `python start_backend.py`
-3. Start the frontend: `cd frontend && npm run dev`
-4. Navigate to **Slide 6 (AI Planner)** — click **[AI PLANNER]** in the navbar, or click **[GET STARTED]** on the hero
-5. Type a travel query like: _"Plan a 2-day trip to Goa under ₹15000"_
-6. The AI orchestrator will call all relevant services and return a complete travel plan.
+```bash
+cd telegram
+python bot_enhanced.py
+# Bot is now live — open Telegram, search your bot, send /start
+```
+
+### Start Mobile App
+
+```bash
+cd mobileApp/TravelPlanner
+npx expo start
+
+# Options:
+#   Press w — open in browser
+#   Press a — open Android emulator
+#   Scan QR — open in Expo Go on physical device
+#   Press t — switch to tunnel mode (fixes QR scan issues on physical devices)
+```
+
+> **Physical device tip**: Make sure phone and PC are on the same WiFi. If the QR scan opens but doesn't load, press `t` in the terminal to enable tunnel mode, then rescan.
 
 ### Docker Deployment
 
-Build and run using Docker Compose:
-
 ```bash
 docker-compose up -d
+# Gateway: http://localhost:8000
+# Frontend: http://localhost:3000
+# Microservices: http://localhost:8001–8006
 ```
 
-Expected services:
-
-- Gateway: `http://localhost:8000`
-- Frontend: `http://localhost:3000`
-- All microservices: `http://localhost:8001-8006`
-
 ---
+
+# 16. API Reference
 
 ### Gateway Endpoints
 
 #### POST /plans/generate
 
-**Description**: Generate a complete travel plan based on user query (with Redis caching).
+Generate a complete travel plan.
 
-**Request**:
+Request:
 
 ```json
 {
   "query": "Plan a 2-day trip to Goa under ₹15000",
   "session_id": "optional-uuid",
-  "budget": 15000
+  "source": "Hyderabad",
+  "destination": "Goa"
 }
 ```
 
-**Response**:
+Response:
 
 ```json
 {
@@ -704,41 +770,30 @@ Expected services:
   "trip_plan": {
     "destination": "Goa",
     "duration": "2 days",
-    "flights": [],
-    "hotels": [],
-    "itinerary": "Day 1...",
-    "budget_advice": "Tip: ..."
+    "estimated_budget": 11500,
+    "weather": { "city": "Goa", "temperature": "30°C", "condition": "Sunny" },
+    "itinerary": ["Day 1: Baga Beach...", "Day 2: Fort Aguada..."],
+    "budget_advice": "Book flights 2 weeks in advance for best prices."
   }
 }
 ```
 
 #### WS /ws/plan
 
-**Description**: Real-time WebSocket for streaming intent detection and plan generation.
+Real-time WebSocket for streaming plan generation.
 
 #### GET /status
 
-**Description**: System health dashboard (Gateway + All Microservices).
-
----
+System health dashboard (Gateway + all microservices).
 
 ### User Service Endpoints
 
-#### POST /auth/register
-
-Register a new user with preferences.
-
-#### POST /auth/login
-
-Get JWT access token.
-
-#### POST /plans/save
-
-Save a generated plan to user profile.
-
-#### GET /plans/saved
-
-Retrieve all saved plans.
+| Method | Endpoint | Description |
+|---|---|---|
+| POST | `/auth/register` | Register a new user |
+| POST | `/auth/login` | Get JWT access token |
+| POST | `/plans/save` | Save a generated plan |
+| GET | `/plans/saved` | Retrieve saved plans |
 
 ---
 
@@ -763,26 +818,6 @@ pytest tests/integration/ -v
 locust -f locustfile.py --host=http://localhost:8000
 ```
 
-### Sample Test Cases
-
-```python
-# Test orchestrator service selection
-def test_service_selection_for_travel_query():
-    query = "Plan a trip to Paris"
-    services = orchestrator.determine_services(query)
-    assert "flights" in services
-    assert "hotels" in services
-
-# Test workflow execution
-def test_complete_workflow():
-    result = gateway.plan_trip({
-        "query": "2-day Goa trip",
-        "budget": 15000
-    })
-    assert result["status"] == "success"
-    assert "flights" in result["trip_plan"]
-```
-
 ---
 
 # 18. Performance Optimization
@@ -790,7 +825,6 @@ def test_complete_workflow():
 ### Caching Strategy
 
 ```python
-# Implement Redis caching for frequently queried destinations
 @cache()
 def get_flights(source, destination):
     return flight_service.search(source, destination)
@@ -798,24 +832,18 @@ def get_flights(source, destination):
 
 ### Parallel Service Execution
 
-Services are called concurrently using asyncio:
-
 ```python
 async def orchestrate_workflow(query):
-    flight_task = get_flights(...)
-    hotel_task = get_hotels(...)
-    weather_task = get_weather(...)
-
     results = await asyncio.gather(
-        flight_task,
-        hotel_task,
-        weather_task
+        get_flights(...),
+        get_hotels(...),
+        get_weather(...)
     )
 ```
 
 ### Expected Performance Metrics
 
-- Average response time: **2-4 seconds**
+- Average response time: **2–4 seconds**
 - P99 latency: **< 6 seconds**
 - Throughput: **100+ requests/minute** (single instance)
 
@@ -823,38 +851,11 @@ async def orchestrate_workflow(query):
 
 # 19. Security & Best Practices
 
-### API Security
-
-```python
-# Implement rate limiting
-from slowapi import Limiter
-limiter = Limiter(key_func=get_remote_address)
-
-@app.post("/plan")
-@limiter.limit("10/minute")
-async def plan_trip(request: PlanRequest):
-    pass
-```
-
-### Data Protection
-
-- Validate all inputs using Pydantic models
-- Sanitize user queries to prevent injection attacks
-- Use HTTPS for all external API calls
-- Store API keys securely in environment variables, never in code
-
-### Authentication (Optional)
-
-```python
-# JWT-based authentication for production
-from fastapi.security import HTTPBearer
-security = HTTPBearer()
-
-@app.post("/plan")
-async def plan_trip(request: PlanRequest, credentials: HTTPAuthenticationCredentials = Depends(security)):
-    # Verify JWT token
-    pass
-```
+- Rate limiting via `slowapi`
+- Input validation with Pydantic models
+- JWT authentication for User Service
+- API keys stored in `.env`, never in code
+- HTTPS for all external API calls
 
 ---
 
@@ -863,73 +864,31 @@ async def plan_trip(request: PlanRequest, credentials: HTTPAuthenticationCredent
 ### Structured Logging
 
 ```python
-import logging
-from pythonjsonlogger import jsonlogger
-
-logger = logging.getLogger()
-handler = logging.StreamHandler()
-formatter = jsonlogger.JsonFormatter()
-handler.setFormatter(formatter)
-logger.addHandler(handler)
-
 logger.info("Trip planning started", extra={"query": query, "user_id": user_id})
-```
-
-### Metrics Collection
-
-Using Prometheus for monitoring:
-
-```python
-from prometheus_client import Counter, Histogram
-
-request_count = Counter('requests_total', 'Total requests')
-request_duration = Histogram('request_duration_seconds', 'Request duration')
 ```
 
 ### Health Checks
 
-Implement health endpoints for each service:
-
 ```python
 @app.get("/health")
 async def health():
-    return {
-        "status": "healthy",
-        "uptime": get_uptime(),
-        "timestamp": datetime.now()
-    }
+    return { "status": "healthy", "uptime": get_uptime(), "timestamp": datetime.now() }
 ```
 
 ---
 
 # 21. Troubleshooting Guide
 
-### Common Issues & Solutions
-
-| Issue                   | Cause                         | Solution                                                   |
-| ----------------------- | ----------------------------- | ---------------------------------------------------------- |
-| Services not responding | Port conflicts                | Check if ports 8000-8005 are available                     |
-| LLM not responding      | Ollama not running            | Run `ollama serve` in a separate terminal                  |
-| Out of memory           | Model too large for system    | Use smaller model (Phi-2, Mistral 7B instead of LLaMA 13B) |
-| Slow response           | Services running sequentially | Ensure async/concurrent execution                          |
-| Memory issues           | Large data aggregation        | Implement pagination and streaming                         |
-| Ollama errors           | Port 11434 already in use     | Change Ollama port or stop conflicting process             |
-
-### Debug Mode
-
-Enable verbose logging:
-
-```bash
-export LOG_LEVEL=DEBUG
-python gateway/main.py
-```
-
-Check individual service logs:
-
-```bash
-curl http://localhost:8001/logs
-curl http://localhost:8002/logs
-```
+| Issue | Cause | Solution |
+|---|---|---|
+| Services not responding | Port conflicts | Check ports 8000–8006 are free |
+| LLM not responding | Ollama not running | Run `ollama serve` |
+| Out of memory | Model too large | Use Phi-2 or Mistral 7B |
+| Slow response | Sequential execution | Ensure async/concurrent calls |
+| Telegram bot silent | Wrong token | Check `config.yml` token |
+| Telegram QR doesn't open | Network/firewall | Press `t` for tunnel mode in Expo |
+| Mobile app `localhost` fails | Wrong IP on device | Use machine's LAN IP, not localhost |
+| React Navigation not found | Packages not installed | Run `npm install @react-navigation/native @react-navigation/native-stack` |
 
 ---
 
@@ -941,15 +900,7 @@ curl http://localhost:8002/logs
 docker-compose -f docker-compose.dev.yml up
 ```
 
-### Staging Environment
-
-```bash
-docker-compose -f docker-compose.staging.yml up
-```
-
-### Production Deployment
-
-#### Option 1: Kubernetes
+### Production — Kubernetes
 
 ```yaml
 apiVersion: apps/v1
@@ -958,100 +909,75 @@ metadata:
   name: travel-planner
 spec:
   replicas: 3
-  selector:
-    matchLabels:
-      app: travel-planner
-  template:
-    metadata:
-      labels:
-        app: travel-planner
-    spec:
-      containers:
-        - name: gateway
-          image: travel-planner:latest
-          ports:
-            - containerPort: 8000
+  ...
 ```
 
-#### Option 2: AWS using gunicorn + nginx
+### Production — AWS (gunicorn + nginx)
 
 ```bash
 gunicorn -w 4 -b 0.0.0.0:8000 gateway.main:app
 ```
 
-#### Option 3: Azure Container Instances
+### Production — Azure Container Instances
 
 ```bash
-az container create \
-  --resource-group myResourceGroup \
-  --name travel-planner \
-  --image travel-planner:latest \
-  --ports 8000
+az container create --resource-group myRG --name travel-planner --image travel-planner:latest --ports 8000
 ```
 
 ---
 
 # 23. Advanced Features
 
-### Multi-Language Support
+### Real-time Notifications (WebSocket)
 
 ```python
-# Add i18n support
-from babel import Locale
-def translate_results(results, language="en"):
-    # Translate destination names, hotel descriptions, etc.
-    pass
-```
-
-### Real-time Notifications
-
-```python
-from fastapi import WebSocket
-
 @app.websocket("/ws/trip-updates")
 async def websocket_endpoint(websocket: WebSocket):
     await websocket.accept()
-    while True:
-        data = await orchestrate_workflow(...)
-        await websocket.send_json(data)
+    data = await orchestrate_workflow(...)
+    await websocket.send_json(data)
 ```
 
-### Machine Learning Integration
+### ML-Based Preference Prediction
 
 ```python
-# Use local LLM for preference prediction
-from langchain.llms import Ollama
-
 def predict_user_preferences(user_history):
     llm = Ollama(model="llama2", base_url="http://localhost:11434")
-
-    prompt = f"""Based on this travel history: {user_history}
-    What might this user prefer for their next trip?"""
-
+    prompt = f"Based on this travel history: {user_history} — what might this user prefer next?"
     return llm(prompt)
-```
-
-### Analytics & Insights
-
-```python
-# Track which services are used most frequently
-@app.get("/analytics")
-async def get_analytics():
-    return {
-        "most_popular_destinations": [...],
-        "average_budget": 12500,
-        "peak_hours": [19, 20, 21],
-        "user_satisfaction_score": 4.6
-    }
 ```
 
 ---
 
-# 24. Contributing Guidelines
+# 24. Future Enhancements
 
-We welcome contributions! Please follow these guidelines:
+- **Multi-destination trips**: Plan across multiple cities
+- **Voice interface**: Voice-based query processing
+- **Booking integration**: Direct hotel/flight bookings
+- **Push notifications**: Mobile trip reminders via Expo Notifications
+- **Telegram payments**: In-bot booking checkout
+- **AsyncStorage**: Persist mobile trip history across sessions
+- **Collaborative planning**: Multiple users planning together
+- **AR/VR preview**: Virtual tour of destinations
+- **Carbon footprint**: Sustainability metrics per trip
+- **GraphQL**: Replace REST for complex frontend queries
 
-### Branch Naming Convention
+---
+
+# 25. Resources & Documentation
+
+- [FastAPI Documentation](https://fastapi.tiangolo.com/)
+- [LangChain Documentation](https://python.langchain.com/)
+- [Ollama — Local LLM](https://ollama.ai)
+- [python-telegram-bot](https://python-telegram-bot.org/)
+- [React Navigation](https://reactnavigation.org/)
+- [Expo Documentation](https://docs.expo.dev/)
+
+---
+
+# 26. Contributing Guidelines
+
+### Branch Naming
 
 ```
 feature/add-new-service
@@ -1059,122 +985,45 @@ bugfix/fix-orchestration-logic
 docs/update-readme
 ```
 
-### Pull Request Process
-
-1. Fork the repository
-2. Create a feature branch
-3. Make changes with clear commit messages
-4. Write/update tests
-5. Submit PR with detailed description
-
 ### Code Style
 
 ```bash
-# Format code with Black
-black .
-
-# Lint with Flake8
-flake8 .
-
-# Type checking with mypy
-mypy .
+black .       # format
+flake8 .      # lint
+mypy .        # type check
 ```
 
 ---
 
-# 25. Future Enhancements
-
-### Planned Features
-
-- **Multi-destination trips**: Plan trips across multiple cities
-- **Collaborative planning**: Multiple users planning together
-- **Cost optimization**: ML-based cost prediction
-- **Sustainability metrics**: Carbon footprint calculations
-- **AR/VR preview**: Virtual tour of destinations
-- **Mobile app**: React Native implementation
-- **Voice interface**: Voice-based query processing
-- **Booking integration**: Direct hotel/flight bookings
-- **Payment gateway**: Integrated checkout system
-- **Social features**: Share trip plans, recommendations
-
-### Technology Upgrades
-
-- Transition to GraphQL for complex queries
-- Implement CQRS pattern for scalability
-- Adopt event-driven architecture
-- Implement machine learning for personalization
-- Add blockchain for secure transaction records
-
----
-
-# 26. Resource & Documentation
-
-### External Resources
-
-- [FastAPI Documentation](https://fastapi.tiangolo.com/)
-- [LangChain Documentation](https://python.langchain.com/)
-- [Ollama - Local LLM](https://ollama.ai)
-- [LLaMA 2 Model](https://llama.meta.com/)
-- [Mistral AI](https://www.mistral.ai/)
-- [Microservices Architecture Best Practices](https://microservices.io/)
-- [Python Async Programming](https://realpython.com/async-io-python/)
-
-### Key Concepts
-
-- **API Gateway Pattern**: Centralized entry point for all requests
-- **Service Orchestration**: Dynamic composition of services based on intent
-- **Headless Architecture**: Separation of backend logic from frontend UI
-- **Microservices**: Independent, loosely coupled services
-- **Composable Services**: Services designed to be combined flexibly
-
-### Related Projects
-
-- OpenAI's Function Calling
-- LangChain Agent Framework
-- Apache Airflow (Workflow Orchestration)
-- Apache Kafka (Event Streaming)
-- Kubernetes (Container Orchestration)
-
----
-
-# 27. FAQ & Common Questions
+# 27. FAQ
 
 **Q: Can I deploy this on shared hosting?**
-A: Yes, but for optimal performance, use Docker containers or cloud platforms.
+A: Yes, but for optimal performance use Docker or cloud platforms.
 
-**Q: How do I scale this for more users?**
-A: Implement load balancing, use database caching, and deploy multiple instances using Kubernetes.
+**Q: Can I replace OpenAI with a local LLM?**
+A: Yes — use Ollama with LLaMA 2 or Mistral. Runs fully offline, no API keys needed.
 
-**Q: Can I replace OpenAI with local LLM?**
-A: Yes, and it's recommended! Use Ollama with LLaMA 2, Mistral, or other open-source models. No API keys needed, runs entirely offline.
+**Q: Does the mobile app need any backend changes?**
+A: No. It hits the same `/plans/generate` and `/weather` endpoints as the browser frontend.
 
-**Q: What LLM should I use?**
-A: For most systems, LLaMA 2 (7B) via Ollama is ideal. For slower systems, try Phi-2 or Mistral 7B.
+**Q: How do I get a Telegram bot token?**
+A: Open Telegram, search for [@BotFather](https://t.me/botfather), send `/newbot`, follow the steps.
 
-**Q: How do I handle service failures?**
-A: Implement circuit breakers, retry logic, and fallback services.
+**Q: The Expo QR code doesn't connect on my phone — what do I do?**
+A: Press `t` in the Expo terminal to switch to tunnel mode, then rescan. Ensure phone and PC are on the same WiFi, or open port 8081 in Windows Firewall.
 
 **Q: What's the cost of running this?**
-A: With local LLM (Ollama), cost is minimal - just server/hosting expenses. No API charges. Optional external services (weather API) may have small costs depending on usage.
+A: With local LLM (Ollama), cost is minimal — just server/hosting. No API charges.
 
 ---
 
-# 28. Support & Contact
+# 28. License
 
-- **Documentation**: See this README and `/docs` folder
-- **Issues**: Report bugs on GitHub Issues
-- **Discussions**: Join GitHub Discussions for feature requests
-- **Email**: support@example.com
-- **Community**: Join our Discord/Slack community
-
----
-
-# 29. License
-
-This project is licensed under the MIT License. See [LICENSE](LICENSE) file for details.
+This project is licensed under the MIT License. See [LICENSE](LICENSE) for details.
 
 ---
 
 **Last Updated**: March 2026
-**Version**: 1.1.0
+**Version**: 1.2.0
 **Status**: Active Development
+**Client Surfaces**: Browser (Next.js) · Telegram Bot · React Native Mobile App
