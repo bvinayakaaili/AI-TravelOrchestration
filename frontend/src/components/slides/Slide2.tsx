@@ -1,11 +1,9 @@
-//frontend/src/components/slides/Slide2.tsx
 "use client";
 
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import { SplitText, initSpotlightHover } from "@/components/Animations";
 
-// Track first visits globally for skeleton loaders
 const visitedSlides = new Set<number>();
 
 export default function Slide2({ isActive }: { isActive: boolean }) {
@@ -24,7 +22,8 @@ export default function Slide2({ isActive }: { isActive: boolean }) {
 
     return (
         <div className={`slide-container bg-deep ${isActive ? 'slide-active' : 'slide-exit'}`}>
-            <div className="slide-content flex flex-col md:flex-row h-full w-full">
+            {/* pt offsets the fixed navbar — adjust the fallback 64px to match your --navbar-height variable */}
+            <div className="slide-content flex flex-col md:flex-row h-full w-full pt-[var(--navbar-height,64px)]">
                 {/* Left Panel */}
                 <div className="w-full md:w-1/2 h-[35vh] md:h-full overflow-hidden relative">
                     <div className="absolute inset-0 bg-primary/40 z-[1]" />
@@ -37,8 +36,8 @@ export default function Slide2({ isActive }: { isActive: boolean }) {
                     />
                 </div>
 
-                {/* Right Panel */}
-                <div className="w-full md:w-1/2 flex-1 md:h-full flex flex-col justify-center pt-20 md:pt-24 p-5 sm:p-8 md:p-16 lg:p-24 relative overflow-y-auto">
+                {/* Right Panel — removed top padding that was hiding content under navbar */}
+                <div className="w-full md:w-1/2 flex-1 md:h-full flex flex-col justify-center p-5 sm:p-8 md:p-16 lg:p-24 relative overflow-y-auto bg-deep">
 
                     {/* Skeleton Overlay */}
                     <div
@@ -52,7 +51,7 @@ export default function Slide2({ isActive }: { isActive: boolean }) {
                         ))}
                     </div>
 
-                    <h2 className="font-orbitron font-bold text-xl sm:text-3xl md:text-5xl mb-4 md:mb-6">
+                    <h2 className="font-orbitron font-bold text-lg sm:text-2xl md:text-3xl mb-4 md:mb-6">
                         <SplitText text="ONE PLATFORM." delayIndex={0} />
                         <br />
                         <SplitText text="INFINITE COMPOSITIONS." delayIndex={2} />
