@@ -15,10 +15,11 @@ import redis.asyncio as redis
 from jose import jwt, JWTError
 import httpx
 
-# Import the orchestrator (adjust path if needed based on your setup)
+# Import the orchestrator and RAG pipeline
 import sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from orchestrator.planner import TravelOrchestrator
+from rag import start_scheduler, stop_scheduler, run_ingestion
 
 logger = logging.getLogger("gateway")
 logging.basicConfig(level=logging.INFO)
@@ -155,6 +156,17 @@ async def share_plan(plan_id: str):
                 raise HTTPException(status_code=404, detail="Shared plan not found")
             raise HTTPException(status_code=500, detail="Error fetching plan")
 
+@app.post("/rag/ingest")
+async def trigger_rag_ingestion(request: Request):
+    """Manually trigger RAG knowledge ingestion pipeline."""
+    try:
+        body = await request.json() if request.headers.get("content-type") == "application/json" else {}
+    except Exception:
+        body = {}
+    force = body.get("force", False)
+    summary = run_ingestion(force=force)
+    return summary
+
 # --- WebSockets ---
 
 @app.websocket("/ws/plan")
@@ -240,13 +252,24 @@ async def startup_event():
     except Exception as e:
         logger.error(f"Failed to initialize TravelOrchestrator: {e}")
 
+    try:
+        start_scheduler()
+        logger.info("RAG background scheduler started successfully.")
+    except Exception as e:
+        logger.warning(f"RAG background scheduler failed to start: {e}")
+
 @app.on_event("shutdown")
 async def shutdown_event():
     logger.info("Shutting down Gateway...")
+    try:
+        stop_scheduler()
+    except Exception:
+        pass
+
     if getattr(globals(), 'orchestrator', None) and orchestrator:
         await orchestrator.close()
     if getattr(globals(), 'redis_client', None) and redis_client:
         try:
             await redis_client.aclose()
         except Exception:
-            pass
+            pass

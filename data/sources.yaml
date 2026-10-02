@@ -1,0 +1,166 @@
+# RAG Knowledge Pipeline Sources Configuration
+# Configured sources for travel knowledge ingestion.
+# Supports both web sources (http/https URLs) and local knowledge files.
+
+sources:
+  - name: wikivoyage_goa
+    destination: Goa
+    url: "https://en.wikivoyage.org/wiki/Goa"
+    type: "html"
+    enabled: true
+
+  - name: wikivoyage_mumbai
+    destination: Mumbai
+    url: "https://en.wikivoyage.org/wiki/Mumbai"
+    type: "html"
+    enabled: true
+
+  - name: wikivoyage_delhi
+    destination: Delhi
+    url: "https://en.wikivoyage.org/wiki/Delhi"
+    type: "html"
+    enabled: true
+
+  - name: wikivoyage_bangalore
+    destination: Bangalore
+    url: "https://en.wikivoyage.org/wiki/Bangalore"
+    type: "html"
+    enabled: true
+
+  - name: wikivoyage_hyderabad
+    destination: Hyderabad
+    url: "https://en.wikivoyage.org/wiki/Hyderabad"
+    type: "html"
+    enabled: true
+
+  - name: wikivoyage_chennai
+    destination: Chennai
+    url: "https://en.wikivoyage.org/wiki/Chennai"
+    type: "html"
+    enabled: true
+
+  - name: wikivoyage_mysore
+    destination: Mysore
+    url: "https://en.wikivoyage.org/wiki/Mysore"
+    type: "html"
+    enabled: true
+
+  - name: wikivoyage_coorg
+    destination: Coorg
+    url: "https://en.wikivoyage.org/wiki/Coorg"
+    type: "html"
+    enabled: true
+
+  - name: wikivoyage_hampi
+    destination: Hampi
+    url: "https://en.wikivoyage.org/wiki/Hampi"
+    type: "html"
+    enabled: true
+
+  - name: wikivoyage_ooty
+    destination: Ooty
+    url: "https://en.wikivoyage.org/wiki/Ooty"
+    type: "html"
+    enabled: true
+
+  - name: wikivoyage_kodaikanal
+    destination: Kodaikanal
+    url: "https://en.wikivoyage.org/wiki/Kodaikanal"
+    type: "html"
+    enabled: true
+
+  - name: wikivoyage_munnar
+    destination: Munnar
+    url: "https://en.wikivoyage.org/wiki/Munnar"
+    type: "html"
+    enabled: true
+
+  - name: wikivoyage_kochi
+    destination: Kochi
+    url: "https://en.wikivoyage.org/wiki/Kochi"
+    type: "html"
+    enabled: true
+
+  - name: wikivoyage_alleppey
+    destination: Alleppey
+    url: "https://en.wikivoyage.org/wiki/Alappuzha"
+    type: "html"
+    enabled: true
+
+  - name: wikivoyage_wayanad
+    destination: Wayanad
+    url: "https://en.wikivoyage.org/wiki/Wayanad"
+    type: "html"
+    enabled: true
+
+  - name: wikivoyage_trivandrum
+    destination: Thiruvananthapuram
+    url: "https://en.wikivoyage.org/wiki/Thiruvananthapuram"
+    type: "html"
+    enabled: true
+
+  - name: wikivoyage_madurai
+    destination: Madurai
+    url: "https://en.wikivoyage.org/wiki/Madurai"
+    type: "html"
+    enabled: true
+
+  - name: wikivoyage_mahabalipuram
+    destination: Mahabalipuram
+    url: "https://en.wikivoyage.org/wiki/Mahabalipuram"
+    type: "html"
+    enabled: true
+
+  - name: wikivoyage_coimbatore
+    destination: Coimbatore
+    url: "https://en.wikivoyage.org/wiki/Coimbatore"
+    type: "html"
+    enabled: true
+
+  - name: wikivoyage_visakhapatnam
+    destination: Visakhapatnam
+    url: "https://en.wikivoyage.org/wiki/Visakhapatnam"
+    type: "html"
+    enabled: true
+
+  - name: wikivoyage_tirupati
+    destination: Tirupati
+    url: "https://en.wikivoyage.org/wiki/Tirupati"
+    type: "html"
+    enabled: true
+
+  - name: wikivoyage_pondicherry
+    destination: Pondicherry
+    url: "https://en.wikivoyage.org/wiki/Pondicherry"
+    type: "html"
+    enabled: true
+
+  - name: local_goa
+    destination: Goa
+    path: "data/knowledge/goa.md"
+    type: "file"
+    enabled: false
+
+  - name: local_mumbai
+    destination: Mumbai
+    path: "data/knowledge/mumbai.md"
+    type: "file"
+    enabled: false
+
+  - name: local_delhi
+    destination: Delhi
+    path: "data/knowledge/delhi.md"
+    type: "file"
+    enabled: false
+
+  - name: local_bangalore
+    destination: Bangalore
+    path: "data/knowledge/bangalore.md"
+    type: "file"
+    enabled: false
+
+  - name: local_hyderabad
+    destination: Hyderabad
+    path: "data/knowledge/hyderabad.md"
+    type: "file"
+    enabled: false

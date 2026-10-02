@@ -1,39 +1,36 @@
 # AI-Orchestrated Smart Travel Planner
 
-## Implementation Plan
+> 📖 **Looking for full system architecture and API documentation?** See [OVERVIEW.md](file:///d:/projects/AI-TravelOrchestration/OVERVIEW.md).
 
-## Recent Updates (March 2026)
+## Highlights & Live Real-Time Integration
 
-- **AI Architecture — RAG**: Integrated **ChromaDB** for Retrieval-Augmented Generation, injecting destination-specific knowledge into LLM prompts.
-- **AI Architecture — Memory**: Added **Conversation Memory** (per-session history) so the planner understands follow-up questions.
-- **Microservices — User & Auth**: New **User Service** (Port 8006) for JWT authentication, user profiles, and saving/sharing travel plans.
-- **Frontend — Advanced Features**: Real-time **WebSockets** for streaming plan generation and **Redis caching** for extreme performance.
-- **Location context**: Auto geolocation fallback with explicit user overrides (e.g., "from Hyderabad" even if detected in Bengaluru), plus "to X / in X" destination extraction when LLM intent parsing fails.
-- **Orchestration**: Added **Smart Budget Advisor** and **Trip Comparison** capabilities.
-- **Budget tips UI**: Budget tips panel now remains visible with a helpful fallback message when LLM advice generation is unavailable.
-- **Telegram Bot — Enhanced**: Full conversation flow with guided `/plan` wizard, inline keyboard buttons (Plan / Weather / Compare / History), session-based trip history, Markdown-formatted output, and `/weather`, `/compare`, `/history`, `/menu`, `/help` commands.
-- **Mobile App — React Native**: New Expo-based Android/iOS app with 5 screens (Home, Plan Trip, Result, Weather, History) hitting the same backend gateway — zero backend changes required.
-- **Dependencies**: Regenerated `requirements.txt` via `pip freeze` and updated setup guides.
+- **Zero Hardcoded Catalogs**: Completely dynamic generation powered by real-time third-party APIs (OpenWeatherMap, Duffel API, OpenAI/Groq).
+- **Multimodal Transit Guidance**: How to travel from origin to destination via **Trains (Express/Vande Bharat)**, **Highway Road/Driving**, **Intercity Buses**, and **Duffel Live Flights / Transfers** rather than assuming air travel for every destination.
+- **Live Meteorological Forecasts**: Direct **OpenWeatherMap API** integration for real-time temperatures, conditions, humidity, wind, and 5-day predictive forecasts.
+- **AI Architecture — RAG**: Integrated **ChromaDB** for Retrieval-Augmented Generation, injecting verified destination-specific knowledge into LLM prompts.
+- **AI Architecture — Memory**: Conversation Memory (per-session history) so the planner understands follow-up questions.
+- **Resilient Edge-Case Handling**: Gracefully handles state/regional queries (e.g. `Kerala`), remote/hill station destinations (`Ooty`, `Coorg`), identical origin-destinations, and non-integer parameter types.
+- **Microservices — User & Auth**: **User Service** (Port 8006) for JWT authentication, user profiles, and saving/sharing travel plans.
+- **Frontend — Advanced Features**: Real-time **WebSockets** for streaming plan generation, interactive **Swipeable Cards**, and **Redis caching**.
 
 ---
 
 # 1. Project Overview
 
-The **AI-Orchestrated Smart Travel Planner** demonstrates a system where an AI engine dynamically composes workflows across multiple microservices to generate a complete travel plan.
+The **AI-Orchestrated Smart Travel Planner** demonstrates a system where an AI engine dynamically composes workflows across multiple microservices to generate a complete, realistic travel plan.
 
-Instead of manually searching across multiple apps (flights, hotels, weather, attractions), the user simply asks:
+Instead of manually searching across multiple apps (flights, trains, hotels, weather, attractions), the user simply asks:
 
-> _"Plan a 2-day trip to Goa under ₹15000 with beach activities."_
+> _"Plan a 2-day trip to Goa from Bangalore under ₹15000 with beach activities."_
 
 The system then:
 
-1. Understands user intent using an LLM.
-2. Determines required services.
-3. Calls the relevant microservices.
-4. Aggregates results.
-5. Returns a unified travel plan.
-
-This demonstrates **dynamic AI service orchestration** across **three client surfaces**: Browser, Telegram Bot, and Mobile App — all powered by the same headless backend.
+1. Understands user intent and resolves origin & destination.
+2. Evaluates realistic transportation routes (train, road, bus, flight).
+3. Fetches live weather from OpenWeatherMap API.
+4. Dynamically discovers authentic hotels and verified attractions.
+5. Computes realistic budget breakdowns.
+6. Returns a unified travel plan with day-by-day itineraries.
 
 ---
 
@@ -51,11 +48,11 @@ This demonstrates **dynamic AI service orchestration** across **three client sur
                     AI Orchestrator (LLM + LangChain) <───> ChromaDB (RAG)
                                     │
              ┌──────────────────────┼────────┬────────┬────────┬────────┐
-             ▼              ▼        ▼        ▼        ▼        ▼        ▼
-        Flights Service  Hotels   Weather  Places   Budget   User & Auth
-                        Service  Service  Service  Service   Service
-             │              │        │        │        │        │
-             └──────────────┴────────┴────────┴────────┴────────┘
+             ▼                      ▼        ▼        ▼        ▼        ▼
+        Transit & Routes         Hotels   Weather  Places   Budget   User & Auth
+        (Duffel + AI Multimodal) Service  Service  Service  Service   Service
+             │                      │        │        │        │        │
+             └──────────────────────┴────────┴────────┴────────┴────────┘
                                     ▼
                         Final Travel Plan Response
 ```
@@ -741,6 +738,18 @@ docker-compose up -d
 # Microservices: http://localhost:8001–8006
 ```
 
+### Updating the RAG Knowledge Base
+
+The automated ingestion pipeline runs in the background on a schedule. To manually force a knowledge base update (e.g., after adding new destinations to `data/sources.yaml`):
+
+```bash
+# Option 1: Via the Gateway REST API (if the backend is running)
+curl -X POST http://localhost:8000/rag/ingest -H "Content-Type: application/json" -d '{"force": false}'
+
+# Option 2: Directly via Python script
+python -m rag.ingestion
+```
+
 ---
 
 # 16. API Reference
@@ -1017,6 +1026,106 @@ A: With local LLM (Ollama), cost is minimal — just server/hosting. No API char
 
 ---
 
+---
+
+# Automated RAG Knowledge Pipeline
+
+The AI Travel Planner includes an automated, periodic Retrieval-Augmented Generation (RAG) knowledge ingestion pipeline that keeps destination travel knowledge fresh, structured, and up to date without manual file maintenance.
+
+> **Authorized Source Disclaimer**: The prototype uses authorized/publicly available tourism content (such as public Wikivoyage entries and curated destination files). Production deployments should use official APIs, licensed feeds, or otherwise authorized sources and comply with source terms and copyright requirements.
+
+### Architecture Overview
+
+```text
+                     ┌───────────────────────┐
+                     │ Authorized Tourism    │
+                     │ Sources (Web / Files) │
+                     └───────────┬───────────┘
+                                 │
+                          Scheduled Job
+                                 │
+                                 ▼
+                     ┌───────────────────────┐
+                     │ RAG Ingestion Pipeline│
+                     │                       │
+                     │ Fetch                 │
+                     │ Clean                 │
+                     │ Hash / Change Detect │
+                     │ Chunk                 │
+                     │ Embed                 │
+                     └───────────┬───────────┘
+                                 │
+                                 ▼
+                           ┌───────────┐
+                           │ ChromaDB  │
+                           └─────┬─────┘
+                                 │
+                                 │ Retrieval
+                                 ▼
+User ───────► FastAPI Gateway ─► AI Orchestrator
+                                 │
+                  ┌──────────────┼───────────────┐
+                  │              │               │
+                  ▼              ▼               ▼
+                RAG        Microservices       Memory
+                             │
+                 ┌───────────┼────────────┐
+                 ▼           ▼            ▼
+              Flights      Hotels       Weather
+                 │           │            │
+                 └───────────┼────────────┘
+                             ▼
+                          Places
+                             │
+                           Budget
+                             │
+                             ▼
+                            LLM
+                             │
+                             ▼
+                      Final Travel Plan
+```
+
+### Pipeline Workflow Steps
+
+1. **Source Configuration (`data/sources.yaml`)**:
+   Defines destination knowledge endpoints (web URLs and local knowledge files) with custom options:
+   ```yaml
+   sources:
+     - name: wikivoyage_goa
+       destination: Goa
+       url: "https://en.wikivoyage.org/wiki/Goa"
+       type: "html"
+       enabled: true
+   ```
+2. **Fetch (`rag/source_fetcher.py`)**:
+   Retrieves document contents using `httpx` with `User-Agent` headers, timeout handling, retry logic, and compliance with `robots.txt`.
+3. **Clean (`rag/content_cleaner.py`)**:
+   Parses HTML via `BeautifulSoup`, stripping navigation, scripts, styles, advertisements, and footers while preserving headers (`h1-h4`), paragraph text, and bullet lists.
+4. **Change Detection (`rag/updater.py` - Manifest)**:
+   Computes a SHA-256 hash of the cleaned document text and compares it against `data/ingestion_manifest.json`. If unchanged, chunking and re-embedding are skipped automatically.
+5. **Chunk (`rag/chunker.py`)**:
+   Splits large clean documents around section headers and paragraph breaks with overlapping boundaries (default 600 chars, 100 char overlap) without breaking mid-sentence.
+6. **Embed & ChromaDB Update (`rag/updater.py`)**:
+   Generates vector embeddings using Sentence Transformers via ChromaDB's default embedding function and upserts/replaces old chunks idempotently using stable chunk IDs (`{city}_{source_name}_chunk_{idx}`).
+7. **Periodic Scheduling (`rag/scheduler.py`)**:
+   Runs background periodic updates configured by environment variables:
+   - `RAG_AUTO_UPDATE=true`
+   - `RAG_UPDATE_INTERVAL_HOURS=168` (weekly)
+8. **Manual Triggering**:
+   Trigger ingestion manually at any time via CLI:
+   ```bash
+   python -m rag.ingestion
+   # or with force flag
+   python -m rag.ingestion --force
+   ```
+   Or via REST API:
+   ```bash
+   POST http://localhost:8000/rag/ingest
+   ```
+
+---
+
 # 28. License
 
 This project is licensed under the MIT License. See [LICENSE](LICENSE) for details.
@@ -1024,6 +1133,6 @@ This project is licensed under the MIT License. See [LICENSE](LICENSE) for detai
 ---
 
 **Last Updated**: March 2026
-**Version**: 1.2.0
+**Version**: 1.3.0
 **Status**: Active Development
 **Client Surfaces**: Browser (Next.js) · Telegram Bot · React Native Mobile App

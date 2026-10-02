@@ -12,15 +12,19 @@ interface ForecastDay { day: string; condition: string; temperature: string; hum
 interface Weather { temperature: string; condition: string; city: string; humidity?: number; wind_kph?: number; forecast?: ForecastDay[]; }
 interface Flight { airline: string; price: number; duration_hrs: number; departure?: string; arrival?: string; }
 interface Hotel { name: string; price_per_night: number; rating: number; amenities?: string[]; location?: string; }
+interface TransitOption { mode: string; title: string; route_details: string; duration_hrs: number; estimated_cost: number; practicality: string; is_recommended?: boolean; }
 interface BudgetEvaluation { status: "within_budget" | "over_budget"; user_budget: number; difference: number; }
 interface BudgetMetrics { cost_per_day: number; hotel_share_pct: number; activity_share_pct: number; flight_share_pct: number; }
 interface BudgetBreakdown { flights: number; hotels: number; activities: number; }
 interface WorkflowStep { step: string; status: string; latency_ms?: number | null; error?: string | null; }
 interface WorkflowExplanation { reasoning: string; trace: WorkflowStep[]; }
-interface Recommended { flight: Flight | null; hotel: Hotel | null; }
+interface Recommended { flight: Flight | null; hotel: Hotel | null; transit?: TransitOption | null; }
 
 interface TripPlan {
   destination: string; source: string; duration: string; preferences: string;
+  distance_km?: number;
+  transit_summary?: string;
+  transit_options?: TransitOption[];
   services_called?: string[];
   flights: Flight[]; hotels: Hotel[];
   weather: Weather; attractions: string[];
@@ -88,7 +92,17 @@ function TripCard({ plan, msgIdx, showTrace, setShowTrace, showItinerary, setSho
   const flights = plan.flights || [];
   const hotels = plan.hotels || [];
   const attractions = plan.attractions || [];
+  const transitOptions = plan.transit_options || [];
   const workflow = plan.workflow_explanation || { trace: [] };
+
+  const modeIcon = (mode: string) => {
+    const m = mode.toLowerCase();
+    if (m.includes("train") || m.includes("rail")) return "🚆";
+    if (m.includes("road") || m.includes("drive") || m.includes("taxi") || m.includes("car")) return "🚗";
+    if (m.includes("bus")) return "🚌";
+    if (m.includes("flight") || m.includes("air")) return "✈️";
+    return "🚀";
+  };
 
   return (
     <div className="mt-3 space-y-3">
@@ -99,6 +113,7 @@ function TripCard({ plan, msgIdx, showTrace, setShowTrace, showItinerary, setSho
           <h3 className="font-orbitron text-sm text-opal tracking-[2px] uppercase">Trip Overview</h3>
           <div className="flex items-center gap-2 text-xs font-space text-text-muted">
             <span>📍 {plan.source || 'Origin'} → {plan.destination}</span>
+            {plan.distance_km && <span className="bg-opal/10 text-opal px-2 py-0.5 rounded-full">~{plan.distance_km} km</span>}
           </div>
         </div>
         <div className="flex flex-wrap gap-4 text-sm font-space text-white">
@@ -106,6 +121,9 @@ function TripCard({ plan, msgIdx, showTrace, setShowTrace, showItinerary, setSho
           <span><strong>Budget:</strong> ₹{plan.estimated_budget?.toLocaleString() || 'N/A'}</span>
           {plan.preferences && <span><strong>Style:</strong> {plan.preferences}</span>}
         </div>
+        {plan.transit_summary && (
+          <p className="font-space text-xs text-opal/80 mt-2 italic">🛣️ {plan.transit_summary}</p>
+        )}
       </div>
 
       {/* Execution Pipeline */}
@@ -128,14 +146,42 @@ function TripCard({ plan, msgIdx, showTrace, setShowTrace, showItinerary, setSho
         </div>
       )}
 
+      {/* How to Reach / Transit Routes */}
+      {transitOptions.length > 0 && (
+        <div className="glass-card p-4 border-opal/10">
+          <h4 className="font-orbitron text-xs text-opal tracking-[3px] uppercase mb-3">🧭 How to Travel ({plan.source || 'Origin'} → {plan.destination})</h4>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            {transitOptions.map((t, idx) => (
+              <div key={idx} className={`p-3 rounded-lg border ${t.is_recommended ? 'border-opal/40 bg-opal/10' : 'border-opal/10 bg-sapphire-night/40'} font-space text-xs space-y-1`}>
+                <div className="flex justify-between items-center">
+                  <span className="font-bold text-white flex items-center gap-1.5">{modeIcon(t.mode)} {t.title}</span>
+                  {t.is_recommended && <span className="bg-green-500/20 text-green-300 text-[10px] px-1.5 py-0.5 rounded font-bold uppercase tracking-wider">Recommended</span>}
+                </div>
+                <p className="text-text-muted text-[11px] leading-relaxed">{t.route_details}</p>
+                <div className="flex justify-between items-center pt-1 border-t border-opal/10 text-white">
+                  <span className="text-text-muted">⏱️ {t.duration_hrs}h</span>
+                  <span className="text-opal font-bold">₹{t.estimated_cost?.toLocaleString()}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Best Budget Pick */}
-      {plan.recommended?.flight && plan.recommended?.hotel && (
+      {(plan.recommended?.flight || plan.recommended?.transit) && plan.recommended?.hotel && (
         <div className="glass-card p-4 border-opal/20 bg-opal/5">
           <h4 className="font-orbitron text-xs text-opal tracking-[3px] uppercase mb-3">⭐ Best Budget Pick</h4>
           <div className="flex flex-col sm:flex-row gap-3 font-space text-sm text-white">
             <div className="flex-1">
-              <span className="text-text-muted text-xs">Flight</span>
-              <p>{plan.recommended.flight.airline} <span className="text-opal font-bold">₹{plan.recommended.flight.price?.toLocaleString() || "N/A"}</span> <span className="text-text-muted text-xs">({plan.recommended.flight.duration_hrs}h)</span></p>
+              <span className="text-text-muted text-xs">Primary Transit / Route</span>
+              <p>
+                {plan.recommended.transit ? (
+                  <><span>{modeIcon(plan.recommended.transit.mode)} {plan.recommended.transit.title}</span> <span className="text-opal font-bold">₹{plan.recommended.transit.estimated_cost?.toLocaleString()}</span> <span className="text-text-muted text-xs">({plan.recommended.transit.duration_hrs}h)</span></>
+                ) : plan.recommended.flight ? (
+                  <><span>✈️ {plan.recommended.flight.airline}</span> <span className="text-opal font-bold">₹{plan.recommended.flight.price?.toLocaleString()}</span> <span className="text-text-muted text-xs">({plan.recommended.flight.duration_hrs}h)</span></>
+                ) : null}
+              </p>
             </div>
             <div className="flex-1">
               <span className="text-text-muted text-xs">Hotel</span>

@@ -18,8 +18,14 @@ import time
 from typing import Optional
 from collections import defaultdict
 
-# Allow importing sibling modules from the orchestrator directory
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from dotenv import load_dotenv
+
+# Add project root to sys.path if not present
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if PROJECT_ROOT not in sys.path:
+    sys.path.insert(0, PROJECT_ROOT)
+
+load_dotenv(os.path.join(PROJECT_ROOT, ".env"))
 
 from langchain_ollama import ChatOllama
 from langchain_core.prompts import PromptTemplate
@@ -45,17 +51,41 @@ class TravelOrchestrator:
 
     def __init__(self):
         provider = os.getenv("LLM_PROVIDER", "local").lower()
+        openai_key = os.getenv("OPENAI_API_KEY", "").strip()
+        groq_key = os.getenv("GROQ_API_KEY", "").strip()
+        active_key = groq_key or openai_key
 
-        if provider == "local":
-            model    = os.getenv("LLM_MODEL", "llama3")
+        # Auto-detect Groq key (starts with gsk_) or provider=groq
+        if provider == "groq" or (active_key and active_key.startswith("gsk_")):
+            from langchain_openai import ChatOpenAI
+            model = os.getenv("LLM_MODEL", "openai/gpt-oss-20b")
+            base_url = "https://api.groq.com/openai/v1"
+            logger.info(f"Initializing Groq Cloud LLM with model: {model}")
+            self.llm = ChatOpenAI(
+                model_name=model,
+                openai_api_key=active_key,
+                openai_api_base=base_url,
+                temperature=0.1
+            )
+            self.llm_text = ChatOpenAI(
+                model_name=model,
+                openai_api_key=active_key,
+                openai_api_base=base_url,
+                temperature=0.3
+            )
+        elif provider == "local":
+            model = os.getenv("LLM_MODEL", "llama3")
             base_url = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
+            logger.info(f"Initializing Local Ollama LLM with model: {model}")
             self.llm = ChatOllama(model=model, base_url=base_url, format="json")
             # Non-json variant for free-text generation (itinerary, advisor)
             self.llm_text = ChatOllama(model=model, base_url=base_url)
         else:
             from langchain_openai import ChatOpenAI
-            self.llm      = ChatOpenAI(model_name="gpt-3.5-turbo", response_format={"type": "json_object"})
-            self.llm_text = ChatOpenAI(model_name="gpt-3.5-turbo")
+            model = os.getenv("LLM_MODEL", "gpt-3.5-turbo")
+            logger.info(f"Initializing OpenAI LLM with model: {model}")
+            self.llm = ChatOpenAI(model_name=model, response_format={"type": "json_object"})
+            self.llm_text = ChatOpenAI(model_name=model)
 
         # Per-session conversation history: session_id → list of messages
         self._sessions: dict[str, list] = defaultdict(list)
@@ -287,14 +317,24 @@ Give 2 concise tips to save money here. Max 40 words total."""
         context_section = f"\n\nLocal knowledge:\n{rag_context}" if rag_context else ""
 
         prompt = PromptTemplate.from_template(
-            """Create a brief itinerary for {dest} ({days} days).
-Attractions: {attractions}{context}
+            """Create a realistic travel itinerary for {dest} ({days} days).
+
+VERIFIED REAL ATTRACTIONS:
+{attractions}
+
+REAL-TIME RAG KNOWLEDGE BASE FACTS:
+{context}
+
+CRITICAL RULES:
+1. Base the itinerary strictly on the verified attractions and real-time RAG destination facts provided above.
+2. DO NOT introduce fictional places, fake hotel names, or imaginary landmarks.
+3. Keep daily plans practical, structured, and realistic.
 
 Format:
 ## Day X
-- Morning: [Activity]
-- Afternoon: [Activity]
-Keep it extremely short."""
+- Morning: [Real activity using verified places]
+- Afternoon: [Real activity using verified places]
+- Evening: [Real activity/dining using verified places]"""
         )
         chain = prompt | self.llm_text | StrOutputParser()
         try:
@@ -325,7 +365,7 @@ Keep it extremely short."""
 
         # Build and run parallel service calls
         service_registry = {
-            "flights": lambda: self._fetch_data(f"{FLIGHTS_URL}/flights", {"source": src, "destination": dest}),
+            "flights": lambda: self._fetch_data(f"{FLIGHTS_URL}/transit", {"source": src, "destination": dest}),
             "hotels":  lambda: self._fetch_data(f"{HOTELS_URL}/hotels",  {"city": dest}),
             "weather": lambda: self._fetch_data(f"{WEATHER_URL}/weather", {"city": dest}),
             "places":  lambda: self._fetch_data(f"{PLACES_URL}/places",  {"city": dest}),
@@ -348,16 +388,23 @@ Keep it extremely short."""
         for svc in ALL_SERVICES:
             if svc in service_results:
                 res = service_results[svc]
+                step_title = "Transit & Route Service" if svc == "flights" else f"{svc.title()} Service"
                 workflow_trace.append({
-                    "step": f"{svc.title()} Service",
+                    "step": step_title,
                     "status": "completed" if res.get("data") else "failed",
                     "latency_ms": res.get("latency_ms"), "error": res.get("error")
                 })
             else:
-                workflow_trace.append({"step": f"{svc.title()} Service", "status": "skipped", "latency_ms": None, "error": None})
+                step_title = "Transit & Route Service" if svc == "flights" else f"{svc.title()} Service"
+                workflow_trace.append({"step": step_title, "status": "skipped", "latency_ms": None, "error": None})
 
         # Extract data
-        flights  = service_results.get("flights", {}).get("data", {}).get("flights", [])
+        transit_data = service_results.get("flights", {}).get("data", {})
+        transit_options = transit_data.get("transit_options", [])
+        flights = transit_data.get("flights", [])
+        distance_km = transit_data.get("distance_km")
+        transit_summary = transit_data.get("summary", "")
+
         hotels   = service_results.get("hotels",  {}).get("data", {}).get("hotels",  [])
         weather  = service_results.get("weather", {}).get("data", {})
         places_raw = service_results.get("places", {}).get("data", {}).get("places", [])
@@ -366,22 +413,34 @@ Keep it extremely short."""
             p if isinstance(p, str) else p.get("name", "") for p in places_raw
         ]
 
-        flights.sort(key=lambda x: x.get("price", 0))
+        if flights:
+            flights.sort(key=lambda x: x.get("price", 0))
         hotels.sort(key=lambda x: x.get("price_per_night", 0))
 
         # Budget optimization
-        best_flight = best_hotel = None
+        best_flight = flights[0] if flights else None
+        best_hotel = hotels[0] if hotels else None
+        
+        # Primary travel cost
+        recommended_transit = next((t for t in transit_options if t.get("is_recommended")), transit_options[0] if transit_options else None)
+        transit_cost = recommended_transit.get("estimated_cost", 1500) if recommended_transit else (best_flight.get("price", 0) if best_flight else 1500)
+
         estimated_budget = 0
         budget_breakdown = budget_metrics = budget_evaluation = {}
         budget_advice = ""
 
         if "flights" in selected_services and "hotels" in selected_services:
-            best_flight, best_hotel = self.optimize_for_budget(flights, hotels, days, budget)
-            flight_cost = best_flight.get("price", 0) if best_flight else 0
+            if flights and hotels:
+                best_flight, best_hotel = self.optimize_for_budget(flights, hotels, days, budget)
+                transport_cost = best_flight.get("price", transit_cost) if best_flight else transit_cost
+            else:
+                transport_cost = transit_cost
+                best_hotel = hotels[0] if hotels else None
+
             hotel_cost_per_night = best_hotel.get("price_per_night", 0) if best_hotel else 0
 
             budget_res = await self._post_data(f"{BUDGET_URL}/budget", {
-                "flights_cost": flight_cost,
+                "flights_cost": transport_cost,
                 "hotels_cost_per_night": hotel_cost_per_night,
                 "num_days": days, "daily_activities_cost": 1500, "max_budget": budget
             })
@@ -396,7 +455,6 @@ Keep it extremely short."""
             budget_metrics   = bdata.get("metrics", {})
             budget_evaluation = bdata.get("evaluation")
 
-            # Extract base budget advice inputs to run concurrently below
             budget_advice_inputs = (dest, budget, estimated_budget, days, preferences)
         else:
             budget_advice_inputs = None
@@ -405,28 +463,24 @@ Keep it extremely short."""
         # 🚀 Parallel Execution of Heavy LLM Tasks (Itinerary & Budget Advice)
         advice_task = self.generate_budget_advice(*budget_advice_inputs) if budget_advice_inputs else asyncio.sleep(0)
         
-        # Only generate a day-by-day itinerary if the user is planning a broader trip, not just asking for a list of places.
         generate_itinerary_flag = ("places" in selected_services) and (len(selected_services) > 1)
         itinerary_task = self.generate_itinerary(dest, days, preferences, attractions, rag_context) if generate_itinerary_flag else asyncio.sleep(0)
 
         logger.info(f"Starting parallel LLM generations for {dest}")
         start_llms = time.time()
         
-        # Run them at the same time and wait for both
         budget_advice_result, itinerary = await asyncio.gather(advice_task, itinerary_task, return_exceptions=True)
         
-        # Handle returns safely
         budget_advice = budget_advice_result if isinstance(budget_advice_result, str) else ""
         itinerary = itinerary if (generate_itinerary_flag and isinstance(itinerary, str)) else ""
         
         logger.info(f"Parallel LLM generations completed in {round(time.time() - start_llms, 2)}s")
 
-        # Reasoning string
-        called_names  = [s.title() for s in selected_services]
-        skipped_names = [s.title() for s in ALL_SERVICES if s not in selected_services]
+        called_names  = ["Transit/Routes" if s == "flights" else s.title() for s in selected_services]
+        skipped_names = ["Transit/Routes" if s == "flights" else s.title() for s in ALL_SERVICES if s not in selected_services]
         reasoning = (
-            f"AI detected intent for '{dest}' from '{src}'. "
-            f"Services selected: {', '.join(called_names)}. "
+            f"AI analyzed route and travel options for '{dest}' from '{src}'. "
+            f"Services executed: {', '.join(called_names)}. "
         )
         if skipped_names:
             reasoning += f"Skipped: {', '.join(skipped_names)}. "
@@ -436,6 +490,9 @@ Keep it extremely short."""
         return {
             "destination": dest, "source": src,
             "duration": f"{days} days", "preferences": preferences,
+            "distance_km": distance_km,
+            "transit_summary": transit_summary,
+            "transit_options": transit_options,
             "services_called": selected_services,
             "flights": flights[:3], "hotels": hotels[:3],
             "weather": {
@@ -452,7 +509,11 @@ Keep it extremely short."""
             "budget_metrics":   budget_metrics,
             "budget_evaluation": budget_evaluation,
             "budget_advice": budget_advice,
-            "recommended": {"flight": best_flight, "hotel": best_hotel},
+            "recommended": {
+                "flight": best_flight,
+                "hotel": best_hotel,
+                "transit": recommended_transit
+            },
             "itinerary": itinerary,
             "rag_context_used": bool(rag_context),
             "workflow_explanation": {"reasoning": reasoning, "trace": workflow_trace}

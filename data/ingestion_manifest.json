@@ -1,0 +1,178 @@
+{
+  "wikivoyage_goa": {
+    "destination": "Goa",
+    "source_name": "wikivoyage_goa",
+    "source_url": "https://en.wikivoyage.org/wiki/Goa",
+    "content_hash": "b9ede693c74bbc5ebfd31e17b84a1c10561df9df8e30db128eadab96cffb9482",
+    "chunk_count": 97,
+    "ingested_at": "2026-09-27T06:44:42.123797+00:00"
+  },
+  "wikivoyage_mumbai": {
+    "destination": "Mumbai",
+    "source_name": "wikivoyage_mumbai",
+    "source_url": "https://en.wikivoyage.org/wiki/Mumbai",
+    "content_hash": "c9da1e9f642a6d1bf73e64adf6fd5c30e46863feb7e7375433d3f7b93a1e9725",
+    "chunk_count": 215,
+    "ingested_at": "2026-09-27T06:44:51.741839+00:00"
+  },
+  "wikivoyage_delhi": {
+    "destination": "Delhi",
+    "source_name": "wikivoyage_delhi",
+    "source_url": "https://en.wikivoyage.org/wiki/Delhi",
+    "content_hash": "69663766c91eac789580788b048993dda234d6b6583aa5e13af8ef9f49694077",
+    "chunk_count": 140,
+    "ingested_at": "2026-09-27T06:44:58.429820+00:00"
+  },
+  "wikivoyage_bangalore": {
+    "destination": "Bangalore",
+    "source_name": "wikivoyage_bangalore",
+    "source_url": "https://en.wikivoyage.org/wiki/Bangalore",
+    "content_hash": "618fc941d3994fbe024fa4d70ad87825ddf4013efeb8036189f34397f7bc8397",
+    "chunk_count": 141,
+    "ingested_at": "2026-09-27T06:45:05.028983+00:00"
+  },
+  "wikivoyage_hyderabad": {
+    "destination": "Hyderabad",
+    "source_name": "wikivoyage_hyderabad",
+    "source_url": "https://en.wikivoyage.org/wiki/Hyderabad",
+    "content_hash": "4bd584ec63fbd0723e10be8a60aaaa0131faee2e458f470c8bd7e4f393aaec89",
+    "chunk_count": 108,
+    "ingested_at": "2026-09-27T06:45:10.748598+00:00"
+  },
+  "wikivoyage_chennai": {
+    "destination": "Chennai",
+    "source_name": "wikivoyage_chennai",
+    "source_url": "https://en.wikivoyage.org/wiki/Chennai",
+    "content_hash": "95d5e476caee234e9354453d0a5d1ec28f7d158ac37a1b0880c4be9cdf74e3f7",
+    "chunk_count": 114,
+    "ingested_at": "2026-09-27T06:49:41.543735+00:00"
+  },
+  "wikivoyage_mysore": {
+    "destination": "Mysore",
+    "source_name": "wikivoyage_mysore",
+    "source_url": "https://en.wikivoyage.org/wiki/Mysore",
+    "content_hash": "3a256bba069f7671e5723da8006c0a8e4d31138ab2d361aba6134c82282d7953",
+    "chunk_count": 117,
+    "ingested_at": "2026-09-27T06:49:48.011949+00:00"
+  },
+  "wikivoyage_coorg": {
+    "destination": "Coorg",
+    "source_name": "wikivoyage_coorg",
+    "source_url": "https://en.wikivoyage.org/wiki/Coorg",
+    "content_hash": "c4267834ac910c64bfd3295c1531a214e36665ab45fff92cfeb8b61f22a36ba6",
+    "chunk_count": 31,
+    "ingested_at": "2026-09-27T06:49:50.790911+00:00"
+  },
+  "wikivoyage_hampi": {
+    "destination": "Hampi",
+    "source_name": "wikivoyage_hampi",
+    "source_url": "https://en.wikivoyage.org/wiki/Hampi",
+    "content_hash": "065be27531600c71e2319b94675a4dcb744f49d870fa7d6149ab578ae500d574",
+    "chunk_count": 82,
+    "ingested_at": "2026-09-27T06:49:56.073268+00:00"
+  },
+  "wikivoyage_ooty": {
+    "destination": "Ooty",
+    "source_name": "wikivoyage_ooty",
+    "source_url": "https://en.wikivoyage.org/wiki/Ooty",
+    "content_hash": "3da6fd8c9a76cd4cfd61828badc013d0567bf361b4db291225622eaaa09e7603",
+    "chunk_count": 48,
+    "ingested_at": "2026-09-27T06:49:58.929688+00:00"
+  },
+  "wikivoyage_kodaikanal": {
+    "destination": "Kodaikanal",
+    "source_name": "wikivoyage_kodaikanal",
+    "source_url": "https://en.wikivoyage.org/wiki/Kodaikanal",
+    "content_hash": "0b78fa2100f3657a6dfb333d3cd348109aa0a4edffa7acc059c1fdc9f5529fe3",
+    "chunk_count": 54,
+    "ingested_at": "2026-09-27T06:50:02.739179+00:00"
+  },
+  "wikivoyage_munnar": {
+    "destination": "Munnar",
+    "source_name": "wikivoyage_munnar",
+    "source_url": "https://en.wikivoyage.org/wiki/Munnar",
+    "content_hash": "63f9a3dc9e331aef922af3ae3aef5e60c71c3626f50bd2c8a87d01587046f157",
+    "chunk_count": 78,
+    "ingested_at": "2026-09-27T06:50:07.584174+00:00"
+  },
+  "wikivoyage_kochi": {
+    "destination": "Kochi",
+    "source_name": "wikivoyage_kochi",
+    "source_url": "https://en.wikivoyage.org/wiki/Kochi",
+    "content_hash": "37f797a2cf67baec031248e471913661e47e5752e8027b18f1f1fc3b635079e2",
+    "chunk_count": 124,
+    "ingested_at": "2026-09-27T06:50:13.267637+00:00"
+  },
+  "wikivoyage_alleppey": {
+    "destination": "Alleppey",
+    "source_name": "wikivoyage_alleppey",
+    "source_url": "https://en.wikivoyage.org/wiki/Alappuzha",
+    "content_hash": "991e87f2bbf1ddf079fcbc1c8b74b80bf542601b5a9c1d9d4853e3e1fc57a003",
+    "chunk_count": 49,
+    "ingested_at": "2026-09-27T06:50:18.543278+00:00"
+  },
+  "wikivoyage_wayanad": {
+    "destination": "Wayanad",
+    "source_name": "wikivoyage_wayanad",
+    "source_url": "https://en.wikivoyage.org/wiki/Wayanad",
+    "content_hash": "8974723cca0be5ccb482c6a32fb516d268d3b2e8bbbc693950956d10be0e5e96",
+    "chunk_count": 22,
+    "ingested_at": "2026-09-27T06:50:20.919777+00:00"
+  },
+  "wikivoyage_trivandrum": {
+    "destination": "Thiruvananthapuram",
+    "source_name": "wikivoyage_trivandrum",
+    "source_url": "https://en.wikivoyage.org/wiki/Thiruvananthapuram",
+    "content_hash": "7b26115661615e825200b9c171327e958fe4feb1a9fa60848c8b7545dbdbe79b",
+    "chunk_count": 134,
+    "ingested_at": "2026-09-27T06:50:28.503191+00:00"
+  },
+  "wikivoyage_madurai": {
+    "destination": "Madurai",
+    "source_name": "wikivoyage_madurai",
+    "source_url": "https://en.wikivoyage.org/wiki/Madurai",
+    "content_hash": "cf741ff391815eb78fc93185e4a25c4651e2917763584b264d7c3b95d1f6da0c",
+    "chunk_count": 108,
+    "ingested_at": "2026-09-27T06:50:34.147358+00:00"
+  },
+  "wikivoyage_mahabalipuram": {
+    "destination": "Mahabalipuram",
+    "source_name": "wikivoyage_mahabalipuram",
+    "source_url": "https://en.wikivoyage.org/wiki/Mahabalipuram",
+    "content_hash": "f972213c6942b03f3f540ee1bb72ac903f2a74c2a7541f419b52e0361a2df544",
+    "chunk_count": 53,
+    "ingested_at": "2026-09-27T06:50:37.532923+00:00"
+  },
+  "wikivoyage_coimbatore": {
+    "destination": "Coimbatore",
+    "source_name": "wikivoyage_coimbatore",
+    "source_url": "https://en.wikivoyage.org/wiki/Coimbatore",
+    "content_hash": "ed7c8dac3fee16932f0db41f1e3845b912bddc4f95ba5b631da4a38be9c3056a",
+    "chunk_count": 48,
+    "ingested_at": "2026-09-27T06:50:40.653569+00:00"
+  },
+  "wikivoyage_visakhapatnam": {
+    "destination": "Visakhapatnam",
+    "source_name": "wikivoyage_visakhapatnam",
+    "source_url": "https://en.wikivoyage.org/wiki/Visakhapatnam",
+    "content_hash": "d7094bd195c66495908f78f2765c5b71b2918f51091984732b13dd78e3ded1af",
+    "chunk_count": 57,
+    "ingested_at": "2026-09-27T06:50:45.153352+00:00"
+  },
+  "wikivoyage_tirupati": {
+    "destination": "Tirupati",
+    "source_name": "wikivoyage_tirupati",
+    "source_url": "https://en.wikivoyage.org/wiki/Tirupati",
+    "content_hash": "9bb5dfd6c2b2f79365fc090beabd7e059c991be0af6d7e3f158a26e03aeccff9",
+    "chunk_count": 33,
+    "ingested_at": "2026-09-27T06:50:47.292371+00:00"
+  },
+  "wikivoyage_pondicherry": {
+    "destination": "Pondicherry",
+    "source_name": "wikivoyage_pondicherry",
+    "source_url": "https://en.wikivoyage.org/wiki/Pondicherry",
+    "content_hash": "ff28b8af6ec8a1686e3b87d42fd06207795f9aca615dc12158e4ef42f33d585c",
+    "chunk_count": 79,
+    "ingested_at": "2026-09-27T06:50:52.931150+00:00"
+  }
+}

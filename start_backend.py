@@ -1,8 +1,15 @@
 import subprocess
 import sys
 import time
+import os
+from dotenv import load_dotenv
 
-python_exe = r".\\venv\\Scripts\\python.exe"
+# Ensure UTF-8 output encoding for Windows consoles
+sys.stdout.reconfigure(encoding='utf-8')
+
+load_dotenv()
+
+python_exe = r".\venv\Scripts\python.exe"
 
 services = [
     ("Flights Service", f"{python_exe} -m uvicorn services.flight_service.main:app --host 0.0.0.0 --port 8001 --reload"),
@@ -16,7 +23,7 @@ services = [
 
 processes = []
 
-print("\n🚀 Starting AI Travel Planner Backend\n")
+print("\n[INFO] Starting AI Travel Planner Backend...\n")
 
 for name, command in services:
     print(f"Starting {name}...")
@@ -24,14 +31,14 @@ for name, command in services:
     processes.append(process)
     time.sleep(1)
 
-print("\n✅ All services started!")
+print("\n[SUCCESS] All services started successfully!")
 print("Press CTRL+C to stop everything.\n")
 
 try:
     while True:
         time.sleep(1)
 except KeyboardInterrupt:
-    print("\n🛑 Shutting down services...\n")
+    print("\n[INFO] Shutting down services...\n")
     for p in processes:
         p.terminate()
     sys.exit()
